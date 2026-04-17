@@ -1,0 +1,24 @@
+# Script-inFenoBOTZ-- LocalScript di dalam UI
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local event = ReplicatedStorage:WaitForChild("SambungKataEvent")
+
+local inputField = script.Parent:WaitForChild("TextBox")
+local statusLabel = script.Parent:WaitForChild("TextLabel") -- Label untuk instruksi
+
+inputField.FocusLost:Connect(function(enterPressed)
+	if enterPressed and inputField.Text ~= "" then
+		event:FireServer(inputField.Text)
+		inputField.Text = "" -- Otomatis hapus tulisan di box setelah Enter
+	end
+end)
+
+event.OnClientEvent:Connect(function(playerName, kata, isSuccess)
+	if isSuccess then
+		local hurufBaru = string.upper(string.sub(kata, -1))
+		statusLabel.Text = "HURUF SELANJUTNYA: " .. hurufBaru
+		statusLabel.TextColor3 = Color3.fromRGB(255, 170, 0) -- Warna orange api
+	else
+		statusLabel.Text = kata -- Menampilkan pesan error "Salah huruf"
+		statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Warna merah peringatan
+	end
+end)
