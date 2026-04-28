@@ -1,0 +1,80 @@
+--      Neonisan Fly System  -- 
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = char:WaitForChild("HumanoidRootPart")
+
+local flying = false
+local speed = 50
+
+-- Buat GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "NeonisanGUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 150, 0, 50)
+button.Position = UDim2.new(0, 20, 0, 100)
+button.Text = "Neonisan Fly: OFF"
+button.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+button.TextScaled = true
+button.Parent = screenGui
+
+-- Fly function
+local bodyVelocity
+local bodyGyro
+
+local function startFly()
+	flying = true
+	
+	bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(1,1,1) * 1e5
+	bodyVelocity.Velocity = Vector3.new(0,0,0)
+	bodyVelocity.Parent = humanoidRootPart
+	
+	bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(1,1,1) * 1e5
+	bodyGyro.CFrame = humanoidRootPart.CFrame
+	bodyGyro.Parent = humanoidRootPart
+	
+	button.Text = "Neonisan Fly: ON"
+end
+
+local function stopFly()
+	flying = false
+	
+	if bodyVelocity then bodyVelocity:Destroy() end
+	if bodyGyro then bodyGyro:Destroy() end
+	
+	button.Text = "Neonisan Fly: OFF"
+end
+
+-- Toggle button
+button.MouseButton1Click:Connect(function()
+	if flying then
+		stopFly()
+	else
+		startFly()
+	end
+end)
+
+-- Kontrol gerakan
+local UIS = game:GetService("UserInputService")
+
+UIS.InputBegan:Connect(function(input)
+	if not flying then return end
+	
+	if input.KeyCode == Enum.KeyCode.W then
+		bodyVelocity.Velocity = workspace.CurrentCamera.CFrame.LookVector * speed
+	elseif input.KeyCode == Enum.KeyCode.S then
+		bodyVelocity.Velocity = -workspace.CurrentCamera.CFrame.LookVector * speed
+	elseif input.KeyCode == Enum.KeyCode.Space then
+		bodyVelocity.Velocity = Vector3.new(0, speed, 0)
+	elseif input.KeyCode == Enum.KeyCode.LeftControl then
+		bodyVelocity.Velocity = Vector3.new(0, -speed, 0)
+	end
+end)
+
+UIS.InputEnded:Connect(function()
+	if not flying then return end
+	bodyVelocity.Velocity = Vector3.new(0,0,0)
+end)
