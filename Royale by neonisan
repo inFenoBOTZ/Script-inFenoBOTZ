@@ -1,0 +1,129 @@
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+
+-- GUI SETUP
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "RoyaleUI"
+
+-- LOADING SCREEN
+local loadingFrame = Instance.new("Frame", gui)
+loadingFrame.Size = UDim2.new(1,0,1,0)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+
+local loadingText = Instance.new("TextLabel", loadingFrame)
+loadingText.Size = UDim2.new(1,0,1,0)
+loadingText.Text = "Loading Royale by Neonisan..."
+loadingText.TextColor3 = Color3.new(1,1,1)
+loadingText.TextScaled = true
+loadingText.BackgroundTransparency = 1
+
+-- Animasi titik (...)
+task.spawn(function()
+	while loadingFrame.Parent do
+		for i=1,3 do
+			loadingText.Text = "Loading Royale by Neonisan" .. string.rep(".", i)
+			task.wait(0.5)
+		end
+	end
+end)
+
+task.wait(3)
+loadingFrame:Destroy()
+
+-- KEY SYSTEM
+local keyFrame = Instance.new("Frame", gui)
+keyFrame.Size = UDim2.new(0.3,0,0.2,0)
+keyFrame.Position = UDim2.new(0.35,0,0.4,0)
+keyFrame.BackgroundColor3 = Color3.fromRGB(30,30,30)
+
+local box = Instance.new("TextBox", keyFrame)
+box.Size = UDim2.new(1,0,0.5,0)
+box.PlaceholderText = "Enter Key..."
+box.Text = ""
+
+local button = Instance.new("TextButton", keyFrame)
+button.Size = UDim2.new(1,0,0.5,0)
+button.Position = UDim2.new(0,0,0.5,0)
+button.Text = "Submit"
+
+local unlocked = false
+
+button.MouseButton1Click:Connect(function()
+	if box.Text == "123" then
+		unlocked = true
+		keyFrame:Destroy()
+	else
+		box.Text = "Wrong Key!"
+	end
+end)
+
+repeat task.wait() until unlocked
+
+-- TITLE
+local title = Instance.new("TextLabel", gui)
+title.Size = UDim2.new(0.3,0,0.05,0)
+title.Position = UDim2.new(0.35,0,0,0)
+title.Text = "Royale by Neonisan"
+title.BackgroundTransparency = 1
+title.TextScaled = true
+title.TextColor3 = Color3.new(1,1,1)
+
+-- FEATURES
+local flying = false
+local noclip = false
+
+function fly()
+	flying = not flying
+	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	if flying then
+		local bv = Instance.new("BodyVelocity", hrp)
+		bv.Name = "FlyForce"
+		bv.MaxForce = Vector3.new(100000,100000,100000)
+
+		while flying do
+			bv.Velocity = workspace.CurrentCamera.CFrame.LookVector * 50
+			task.wait()
+		end
+		bv:Destroy()
+	end
+end
+
+function noclipToggle()
+	noclip = not noclip
+	while noclip do
+		for _,v in pairs(char:GetDescendants()) do
+			if v:IsA("BasePart") then
+				v.CanCollide = false
+			end
+		end
+		task.wait()
+	end
+end
+
+function invisible()
+	for _,v in pairs(char:GetDescendants()) do
+		if v:IsA("BasePart") then
+			v.Transparency = 1
+		end
+	end
+end
+
+function jail()
+	char:MoveTo(Vector3.new(0,10,0))
+end
+
+-- KEYBINDS
+game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+	if gp then return end
+
+	if input.KeyCode == Enum.KeyCode.F then
+		fly()
+	elseif input.KeyCode == Enum.KeyCode.N then
+		noclipToggle()
+	elseif input.KeyCode == Enum.KeyCode.I then
+		invisible()
+	elseif input.KeyCode == Enum.KeyCode.J then
+		jail()
+	end
+end)
