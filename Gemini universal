@@ -1,0 +1,126 @@
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local Logo = Instance.new("ImageLabel")
+local Container = Instance.new("ScrollingFrame")
+local UIListLayout = Instance.new("UIListLayout")
+
+-- Konfigurasi Dasar
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.Name = "AdminGui"
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+MainFrame.Position = UDim2.new(0.5, -100, 0.5, -150)
+MainFrame.Size = UDim2.new(0, 200, 0, 300)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Agar bisa digeser
+
+-- Custom Logo (Ganti ID Asset di bawah)
+Logo.Name = "Logo"
+Logo.Parent = MainFrame
+Logo.BackgroundTransparency = 1
+Logo.Position = UDim2.new(0.05, 0, 0.02, 0)
+Logo.Size = UDim2.new(0, 30, 0, 30)
+Logo.Image = "rbxassetid://123456789" -- GANTI DENGAN ID LOGO KAMU
+
+Title.Parent = MainFrame
+Title.Text = "PREMIUM ADMIN"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0.25, 0, 0.02, 0)
+Title.Size = UDim2.new(0, 140, 0, 30)
+Title.Font = Enum.Font.GothamBold
+
+Container.Parent = MainFrame
+Container.BackgroundTransparency = 1
+Container.Position = UDim2.new(0, 0, 0.15, 0)
+Container.Size = UDim2.new(1, 0, 0.85, 0)
+Container.CanvasSize = UDim2.new(0, 0, 1.5, 0)
+
+UIListLayout.Parent = Container
+UIListLayout.Padding = UDim.new(0, 5)
+UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+--- FUNGSI UTAMA ---
+
+local function createButton(name, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 180, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = Container
+    btn.MouseButton1Click:Connect(callback)
+end
+
+-- 1. Speed (Toggle 100)
+createButton("Speed (100)", function()
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+end)
+
+-- 2. Noclip
+local noclip = false
+createButton("Noclip", function()
+    noclip = not noclip
+    game:GetService("RunService").Stepped:Connect(function()
+        if noclip then
+            for _, v in pairs(game.Players.LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+    end)
+end)
+
+-- 3. View Player (Sederhana: Masukkan Nama di Console/Input)
+createButton("View Next Player", function()
+    local players = game.Players:GetPlayers()
+    local current = workspace.CurrentCamera.CameraSubject
+    for i, p in pairs(players) do
+        if p.Character and p.Character:FindFirstChild("Humanoid") == current then
+            local nextP = players[i % #players + 1]
+            workspace.CurrentCamera.CameraSubject = nextP.Character.Humanoid
+            break
+        end
+    end
+    -- Jika kamera di diri sendiri, pindah ke player 2
+    if current == game.Players.LocalPlayer.Character.Humanoid then
+        workspace.CurrentCamera.CameraSubject = players[1].Character.Humanoid
+    end
+end)
+
+-- 4. Reset View
+createButton("Reset View", function()
+    workspace.CurrentCamera.CameraSubject = game.Players.LocalPlayer.Character.Humanoid
+end)
+
+-- 5. TP to Random Player
+createButton("Teleport Random", function()
+    local players = game.Players:GetPlayers()
+    local randomPlayer = players[math.random(1, #players)]
+    if randomPlayer ~= game.Players.LocalPlayer then
+        game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = randomPlayer.Character.HumanoidRootPart.CFrame
+    end
+end)
+
+-- 6. Fly (Basic)
+createButton("Fly (Toggle)", function()
+    -- Logika Fly memerlukan BodyVelocity, ini versi singkat
+    local char = game.Players.LocalPlayer.Character
+    local bv = Instance.new("BodyVelocity", char.HumanoidRootPart)
+    bv.Velocity = Vector3.new(0, 50, 0)
+    wait(2)
+    bv:Destroy()
+end)
+
+-- 7. Jail (Local Simulation)
+createButton("Jail (Visual Only)", function()
+    local cage = Instance.new("Part", workspace)
+    cage.Size = Vector3.new(10, 10, 10)
+    cage.Transparency = 0.5
+    cage.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position
+    cage.Anchored = true
+    -- Untuk memenjarakan orang lain, kamu butuh RemoteEvent (Server Side)
+end)
