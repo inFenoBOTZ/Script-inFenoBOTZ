@@ -1,0 +1,142 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- UI Setup
+local screenGui = script.Parent
+local mainFrame = Instance.new("Frame")
+local title = Instance.new("TextLabel")
+local container = Instance.new("ScrollingFrame")
+local layout = Instance.new("UIListLayout")
+
+-- Custom Logo (Ganti ID asset di bawah)
+local logo = Instance.new("ImageLabel")
+logo.Image = "rbxassetid://123456789" -- Masukkan ID Logo kamu di sini
+logo.Size = UDim2.new(0, 50, 0, 50)
+logo.Position = UDim2.new(0, 5, 0, 5)
+logo.BackgroundTransparency = 1
+logo.Parent = mainFrame
+
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 250, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "PREMIUM ADMIN"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Parent = mainFrame
+
+container.Size = UDim2.new(1, -10, 1, -50)
+container.Position = UDim2.new(0, 5, 0, 45)
+container.BackgroundTransparency = 1
+container.CanvasSize = UDim2.new(0, 0, 2, 0)
+container.Parent = mainFrame
+
+layout.Parent = container
+layout.Padding = UDim.new(0, 5)
+
+-- State Variables
+local noclip = false
+local flying = false
+local speed = 50
+
+-- Fungsi Helper untuk Tombol
+local function createButton(name, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 35)
+	btn.Text = name
+	btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Parent = container
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
+
+--- FITUR ---
+
+-- 1. WalkSpeed
+createButton("Speed Boost (50)", function()
+	player.Character.Humanoid.WalkSpeed = speed
+end)
+
+-- 2. Noclip
+createButton("Noclip: OFF", function(self)
+	noclip = not noclip
+	script.Parent.MainFrame.ScrollingFrame.ChildAdded:Wait() -- Dummy wait
+	if noclip then 
+		print("Noclip Enabled")
+	end
+end)
+
+RunService.Stepped:Connect(function()
+	if noclip then
+		for _, part in pairs(player.Character:GetDescendants()) do
+			if part:IsA("BasePart") then part.CanCollide = false end
+		end
+	end
+end)
+
+-- 3. Fly (Simple)
+createButton("Fly (Toggle F)", function()
+	-- Tekan F untuk mengaktifkan fly setelah menekan tombol ini
+	flying = not flying
+	print("Fly mode toggled")
+end)
+
+-- 4. Gravity (Low)
+createButton("Low Gravity", function()
+	workspace.Gravity = 50
+end)
+
+-- 5. Reset Gravity
+createButton("Reset Gravity", function()
+	workspace.Gravity = 196.2
+end)
+
+-- 6. Dimensi Sendiri (Void Room)
+local inDimension = false
+local oldPos
+createButton("Custom Dimension", function()
+	if not inDimension then
+		oldPos = player.Character.HumanoidRootPart.CFrame
+		local platform = Instance.new("Part", workspace)
+		platform.Size = Vector3.new(50, 1, 50)
+		platform.CFrame = CFrame.new(0, 5000, 0)
+		platform.Anchored = true
+		platform.Name = "PrivateDim"
+		player.Character.HumanoidRootPart.CFrame = CFrame.new(0, 5005, 0)
+		inDimension = true
+	else
+		player.Character.HumanoidRootPart.CFrame = oldPos
+		local p = workspace:FindFirstChild("PrivateDim")
+		if p then p:Destroy() end
+		inDimension = false
+	end
+end)
+
+-- 7. View Player (Random)
+createButton("View Random Player", function()
+	local allPlayers = Players:GetPlayers()
+	local target = allPlayers[math.random(1, #allPlayers)]
+	workspace.CurrentCamera.CameraSubject = target.Character.Humanoid
+end)
+
+-- 8. Reset View
+createButton("Reset View", function()
+	workspace.CurrentCamera.CameraSubject = player.Character.Humanoid
+end)
+
+-- Fitur On/Off Menu (Tombol keyboard L)
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.L then
+		mainFrame.Visible = not mainFrame.Visible
+	end
+end)
