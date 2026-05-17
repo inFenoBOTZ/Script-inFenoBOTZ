@@ -1,0 +1,341 @@
+-- // CONFIGURATION (Bisa Kamu Ubah)
+local LOGO_IMAGE_ID = "rbxassetid://6031075929" -- Ganti dengan ID Asset Decal/Image milikmu
+local NORMAL_SPEED = 16
+
+-- // MAIN GUI CREATION
+local ScreenGui = script.Parent
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "ModMenu"
+MainFrame.Size = UDim2.new(0, 350, 0, 450)
+MainFrame.Position = UDim2.new(0.35, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Membuat GUI bisa digeser
+MainFrame.Parent = ScreenGui
+
+-- Corner Radius
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- Custom Logo & Title
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0, 50, 0, 50)
+Logo.Position = UDim2.new(0, 15, 0, 10)
+Logo.BackgroundTransparency = 1
+Logo.Image = LOGO_IMAGE_ID
+Logo.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 250, 0, 50)
+Title.Position = UDim2.new(0, 75, 0, 10)
+Title.Text = "PREMIUM MOD MENU"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 20
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = MainFrame
+
+-- Line Separator
+local Line = Instance.new("Frame")
+Line.Size = UDim2.new(0, 320, 0, 2)
+Line.Position = UDim2.new(0, 15, 0, 70)
+Line.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+Line.BorderSizePixel = 0
+Line.Parent = MainFrame
+
+-- Scrolling Container for Buttons
+local Scroll = Instance.new("ScrollingFrame")
+Scroll.Size = UDim2.new(0, 320, 0, 350)
+Scroll.Position = UDim2.new(0, 15, 0, 85)
+Scroll.BackgroundTransparency = 1
+Scroll.CanvasSize = UDim2.new(0, 0, 0, 550)
+Scroll.ScrollBarThickness = 6
+Scroll.Parent = MainFrame
+
+local UIList = Instance.new("UIListLayout")
+UIList.Padding = UDim.new(0, 10)
+UIList.Parent = Scroll
+
+-- // VARIABLES & SERVICES
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local flying = false
+local noclip = false
+local in_own_dimension = false
+local original_cframe = nil
+local speed_value = 16
+
+-- // HELPER FUNCTION TO CREATE BUTTONS & INPUTS
+local function createButton(text, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = color or Color3.fromRGB(40, 40, 40)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansSemibold
+    btn.TextSize = 16
+    local clr = Instance.new("UICorner")
+    clr.CornerRadius = UDim.new(0, 6)
+    clr.Parent = btn
+    btn.Parent = Scroll
+    return btn
+end
+
+local function createTextBox(placeholder)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, 0, 0, 40)
+    box.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    box.PlaceholderText = placeholder
+    box.Text = ""
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Font = Enum.Font.SourceSans
+    box.TextSize = 16
+    local clr = Instance.new("UICorner")
+    clr.CornerRadius = UDim.new(0, 6)
+    clr.Parent = box
+    box.Parent = Scroll
+    return box
+end
+
+-- // CREATING UI ELEMENTS
+local FlyBtn = createButton("Fly: OFF", Color3.fromRGB(150, 40, 40))
+local NoclipBtn = createButton("Noclip: OFF", Color3.fromRGB(150, 40, 40))
+
+local SpeedBox = createTextBox("Masukkan WalkSpeed (Contoh: 50)")
+local PlayerTargetBox = createTextBox("Nama Player (Untuk View/TP)")
+
+local ViewBtn = createButton("View Player: OFF", Color3.fromRGB(40, 40, 150))
+local TeleportBtn = createButton("Teleport ke Player", Color3.fromRGB(40, 150, 40))
+local DimensionBtn = createButton("Masuk Dimensi Sendiri: OFF", Color3.fromRGB(100, 40, 150))
+local TimeBtn = createButton("Pemulihan Waktu (1:60): OFF", Color3.fromRGB(200, 120, 0))
+
+-- // FE FEATURES IMPLEMENTATION
+
+-- 1. Fly Feature
+local speed = 50
+local ctrl = {f = 0, b = 0, l = 0, r = 0}
+local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+
+local function Fly()
+    local torso = LocalPlayer.Character:FindFirstChild("HumanoidRootPart") or LocalPlayer.Character:FindFirstChild("Torso")
+    if not torso then return end
+    
+    local bg = Instance.new("BodyGyro", torso)
+    bg.P = 9e4
+    bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.cframe = torso.CFrame
+    
+    local bv = Instance.new("BodyVelocity", torso)
+    bv.velocity = Vector3.new(0, 0.1, 0)
+    bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+    
+    spawn(function()
+        repeat wait()
+            LocalPlayer.Character.Humanoid.PlatformStand = true
+            if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                speed = 50
+            elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                speed = 0
+            end
+            if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f + ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l + ctrl.r, (ctrl.f + ctrl.b) * 2, 0).p) - workspace.CurrentCamera.CoordinateFrame.p)) * speed
+                lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+            elseif speed == 0 then
+                bv.velocity = Vector3.new(0, 0.1, 0)
+            else
+                bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f + lastctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l + lastctrl.r, (lastctrl.f + lastctrl.b) * 2, 0).p) - workspace.CurrentCamera.CoordinateFrame.p)) * speed
+            end
+            bg.cframe = workspace.CurrentCamera.CoordinateFrame
+        until not flying
+        ctrl = {f = 0, b = 0, l = 0, r = 0}
+        lastctrl = {f = 0, b = 0, l = 0, r = 0}
+        speed = 0
+        bg:Destroy()
+        bv:Destroy()
+        LocalPlayer.Character.Humanoid.PlatformStand = false
+    end)
+end
+
+-- Fly Input Keyboard Detection
+game:GetService("UserInputService").InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f = 1
+    elseif input.KeyCode == Enum.KeyCode.S then ctrl.b = -1
+    elseif input.KeyCode == Enum.KeyCode.A then ctrl.l = -1
+    elseif input.KeyCode == Enum.KeyCode.D then ctrl.r = 1 end
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.W then ctrl.f = 0
+    elseif input.KeyCode == Enum.KeyCode.S then ctrl.b = 0
+    elseif input.KeyCode == Enum.KeyCode.A then ctrl.l = 0
+    elseif input.KeyCode == Enum.KeyCode.D then ctrl.r = 0 end
+end)
+
+FlyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    if flying then
+        FlyBtn.Text = "Fly: ON"
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+        Fly()
+    else
+        FlyBtn.Text = "Fly: OFF"
+        FlyBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+    end
+end)
+
+-- 2. Noclip Feature
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+NoclipBtn.MouseButton1Click:Connect(function()
+    noclip = not noclip
+    if noclip then
+        NoclipBtn.Text = "Noclip: ON"
+        NoclipBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+    else
+        NoclipBtn.Text = "Noclip: OFF"
+        NoclipBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+    end
+end)
+
+-- 3. WalkSpeed Feature
+SpeedBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        local num = tonumber(SpeedBox.Text)
+        if num then
+            speed_value = num
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = speed_value
+            end
+        end
+    end
+end)
+
+-- Loop speed agar tidak ter-reset game
+RunService.RenderStepped:Connect(function()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        if LocalPlayer.Character.Humanoid.WalkSpeed ~= speed_value and not flying then
+            LocalPlayer.Character.Humanoid.WalkSpeed = speed_value
+        end
+    end
+end)
+
+-- Mendapatkan target player berdasarkan nama parsial
+local function getTargetPlayer()
+    local text = PlayerTargetBox.Text:lower()
+    for _, plyr in pairs(Players:GetPlayers()) do
+        if plyr.Name:lower():sub(1, #text) == text or plyr.DisplayName:lower():sub(1, #text) == text then
+            return plyr
+        end
+    end
+    return nil
+end
+
+-- 4. View Player
+local viewing = false
+ViewBtn.MouseButton1Click:Connect(function()
+    viewing = not viewing
+    if viewing then
+        local target = getTargetPlayer()
+        if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+            workspace.CurrentCamera.CameraSubject = target.Character.Humanoid
+            ViewBtn.Text = "Viewing: " .. target.DisplayName
+            ViewBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+        else
+            viewing = false
+            ViewBtn.Text = "Player Tidak Ditemukan"
+            ViewBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 40)
+        end
+    else
+        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChild("Humanoid")
+        ViewBtn.Text = "View Player: OFF"
+        ViewBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 150)
+    end
+end)
+
+-- 5. Teleport Player
+TeleportBtn.MouseButton1Click:Connect(function()
+    local target = getTargetPlayer()
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3)
+    end
+end)
+
+-- 6. Dimensi Sendiri (Void Workspace/Isolated Area)
+-- Fitur ini memindahkanmu ke koordinat yang sangat jauh (99999) dan membuat sebuah platform sendiri agar aman dari player lain.
+local dimensionPlatform = nil
+DimensionBtn.MouseButton1Click:Connect(function()
+    in_own_dimension = not in_own_dimension
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if in_own_dimension then
+        original_cframe = hrp.CFrame
+        
+        -- Buat platform dimensi baru
+        dimensionPlatform = Instance.new("Part")
+        dimensionPlatform.Size = Vector3.new(100, 2, 100)
+        dimensionPlatform.Position = Vector3.new(99999, 5000, 99999)
+        dimensionPlatform.Anchored = true
+        dimensionPlatform.Material = Enum.Material.Neon
+        dimensionPlatform.Color = Color3.fromRGB(0, 0, 0)
+        dimensionPlatform.Parent = workspace
+        
+        -- TP ke dimensi baru
+        wait(0.1)
+        hrp.CFrame = CFrame.new(99999, 5003, 99999)
+        DimensionBtn.Text = "Dimensi Sendiri: ON"
+        DimensionBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+    else
+        -- Kembali ke map utama
+        if original_cframe then
+            hrp.CFrame = original_cframe
+        end
+        if dimensionPlatform then
+            dimensionPlatform:Destroy()
+        end
+        DimensionBtn.Text = "Dimensi Sendiri: OFF"
+        DimensionBtn.BackgroundColor3 = Color3.fromRGB(100, 40, 150)
+    end
+end)
+
+-- 7. Pemulihan Waktu 1:60 (Time Dilatation / Slow Motion Effect)
+-- Menggunakan manipulasi ClockTime lokal sehingga siklus waktu berjalan 60x lebih lambat atau cepat dari normal.
+local time_restoration = false
+TimeBtn.MouseButton1Click:Connect(function()
+    time_restoration = not time_restoration
+    if time_restoration then
+        TimeBtn.Text = "Pemulihan Waktu: ON"
+        TimeBtn.BackgroundColor3 = Color3.fromRGB(40, 150, 40)
+    else
+        TimeBtn.Text = "Pemulihan Waktu: OFF"
+        TimeBtn.BackgroundColor3 = Color3.fromRGB(200, 120, 0)
+    end
+end)
+
+-- Loop Pemulihan Waktu (1 detik di real life = 60 detik / 1 menit di game secara visual lokal)
+spawn(function()
+    while true do
+        if time_restoration then
+            -- 1:60 Ratio Effect pada siklus pencahayaan langit game
+            Lighting.ClockTime = Lighting.ClockTime + (1/60)
+        end
+        math.randomseed(os.time())
+        wait(0.1)
+    end
+end)
