@@ -1,0 +1,249 @@
+-- [[ ADVANCED SIMPEL HUB ]] --
+
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "Simple Hub Pro 🚀",
+   LoadingTitle = "Memuat Fitur...",
+   LoadingSubtitle = "by Creator",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false
+})
+
+-- Mempersiapkan Variabel Global
+local Plr = game:GetService("Players").LocalPlayer
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+-- ==========================================
+-- TAB LOCAL PLAYER
+-- ==========================================
+local PlayerTab = Window:CreateTab("Player", 4483362458)
+
+-- 1. WalkSpeed
+PlayerTab:CreateSlider({
+   Name = "Kecepatan (WalkSpeed)",
+   Range = {16, 250},
+   Increment = 1,
+   CurrentValue = 16,
+   Flag = "WS",
+   Callback = function(Value)
+      if Plr.Character and Plr.Character:FindFirstChildOfClass("Humanoid") then
+         Plr.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = Value
+      end
+   end,
+})
+
+-- 2. Fly GUI (Membuka GUI Fly eksternal yang sangat stabil)
+PlayerTab:CreateButton({
+   Name = "Aktifkan Fly GUI",
+   Callback = function()
+      loadstring(game:HttpGet("https://raw.githubusercontent.com/XNEEP/Fly-Gui-Roblox/main/FlyGui.lua"))()
+      Rayfield:Notify({Title = "Fly GUI", Content = "Gunakan GUI yang muncul untuk terbang!", Duration = 3})
+   end,
+})
+
+-- 3. Noclip (Tembus Tembok)
+local NoclipLoop
+PlayerTab:CreateToggle({
+   Name = "Noclip (Tembus Tembok)",
+   CurrentValue = false,
+   Flag = "NoclipToggle",
+   Callback = function(Value)
+      if Value then
+         NoclipLoop = RunService.Stepped:Connect(function()
+            if Plr.Character then
+               for _, v in pairs(Plr.Character:GetDescendants()) do
+                  if v:IsA("BasePart") then
+                     v.CanCollide = false
+                  end
+               end
+            end
+         end)
+      else
+         if NoclipLoop then NoclipLoop:Disconnect() end
+         Rayfield:Notify({Title = "Noclip", Content = "Noclip Dinonaktifkan (Tunggu respawn jika masih tembus)", Duration = 3})
+      end
+   end,
+})
+
+-- 4. Flashback / Time Rewind (Menyimpan posisi 5 detik lalu dan kembali kesana)
+local PositionHistory = {}
+task.spawn(function()
+    while task.wait(0.1) do
+        if Plr.Character and Plr.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(PositionHistory, Plr.Character.HumanoidRootPart.CFrame)
+            if #PositionHistory > 50 then -- Menyimpan memori sekitar 5 detik ke belakang
+                table.remove(PositionHistory, 1)
+            end
+        end
+    end
+end)
+
+PlayerTab:CreateButton({
+   Name = "Flashback (Kembali ke 5 Detik Lalu)",
+   Callback = function()
+      if #PositionHistory > 0 and Plr.Character and Plr.Character:FindFirstChild("HumanoidRootPart") then
+         Plr.Character.HumanoidRootPart.CFrame = PositionHistory[1]
+         Rayfield:Notify({Title = "Flashback", Content = "Berhasil memutar balik waktu!", Duration = 2})
+      else
+         Rayfield:Notify({Title = "Error", Content = "Riwayat posisi belum cukup.", Duration = 2})
+      end
+   end,
+})
+
+
+-- ==========================================
+-- TAB TELEPORT & TARGET (Player Lain)
+-- ==========================================
+local TargetTab = Window:CreateTab("Target / Players", 4483362458)
+
+-- Mengambil daftar nama player yang sedang aktif
+local function GetPlayerNames()
+    local names = {}
+    for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+        if p ~= Plr then table.insert(names, p.Name) end
+    end
+    return names
+end
+
+local SelectedPlayer = ""
+local PlayerDropdown = TargetTab:CreateDropdown({
+   Name = "Pilih Player Target",
+   Options = GetPlayerNames(),
+   CurrentOption = "",
+   Flag = "TargetPlr",
+   Callback = function(Option)
+      SelectedPlayer = Option
+   end,
+})
+
+-- Tombol Refresh Dropdown Player
+TargetTab:CreateButton({
+   Name = "Refresh Daftar Player",
+   Callback = function()
+      PlayerDropdown:Refresh(GetPlayerNames(), true)
+   end,
+})
+
+-- 1. Teleport ke Player
+TargetTab:CreateButton({
+   Name = "Teleport Ke Target",
+   Callback = function()
+      local target = game:GetService("Players"):FindFirstChild(SelectedPlayer)
+      if target and target.Character diplomacy and target.Character:FindFirstChild("HumanoidRootPart") then
+         if Plr.Character and Plr.Character:FindFirstChild("HumanoidRootPart") then
+            Plr.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+         end
+      else
+         Rayfield:Notify({Title = "Error", Content = "Player tidak ditemukan atau sudah mati.", Duration = 3})
+      end
+   end,
+})
+
+-- 2. View Player (Mengintip Kamera Player Lain)
+local Viewing = false
+TargetTab:CreateToggle({
+   Name = "Spion / View Player Target",
+   CurrentValue = false,
+   Flag = "ViewToggle",
+   Callback = function(Value)
+      Viewing = Value
+      if Viewing then
+         local target = game:GetService("Players"):FindFirstChild(SelectedPlayer)
+         if target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
+            Workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
+         end
+      else
+         if Plr.Character and Plr.Character:FindFirstChildOfClass("Humanoid") then
+            Workspace.CurrentCamera.CameraSubject = Plr.Character:FindFirstChildOfClass("Humanoid")
+         end
+      end
+   end,
+})
+
+
+-- ==========================================
+-- TAB VISUAL & ESP (Melihat Tembus Pandang & Terang)
+-- ==========================================
+local VisualTab = Window:CreateTab("Visuals", 4483362458)
+
+-- 1. ESP Player (Membuat Highlight Box di sekitar player lain)
+local ESPEnabled = false
+VisualTab:CreateToggle({
+   Name = "Player ESP (Box Highlight)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(Value)
+      ESPEnabled = Value
+      
+      local function ApplyESP(p)
+         if p == Plr then return end
+         p.CharacterAdded:Connect(function(char)
+             if ESPEnabled then
+                 local highlight = Instance.new("Highlight")
+                 highlight.Name = "ESP_Highlight"
+                 highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                 highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                 highlight.FillTransparency = 0.5
+                 highlight.Parent = char
+             end
+         end)
+         
+         if p.Character then
+             local highlight = p.Character:FindFirstChild("ESP_Highlight") or Instance.new("Highlight")
+             highlight.Name = "ESP_Highlight"
+             highlight.FillColor = Color3.fromRGB(255, 0, 0)
+             highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+             highlight.FillTransparency = 0.5
+             highlight.Parent = p.Character
+         end
+      end
+
+      if ESPEnabled then
+          for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+              ApplyESP(p)
+          end
+          -- Otomatis pasang jika ada player baru masuk game
+          game:GetService("Players").PlayerAdded:Connect(ApplyESP)
+      else
+          for _, p in pairs(game:GetService("Players"):GetPlayers()) do
+              if p.Character and p.Character:FindFirstChild("ESP_Highlight") then
+                  p.Character.ESP_Highlight:Destroy()
+              end
+          end
+      end
+   end,
+})
+
+-- 2. Fullbright (Menghilangkan Gelap / Goa jadi Terang Benderang)
+local FullbrightEnabled = false
+local Lighting = game:GetService("Lighting")
+VisualTab:CreateToggle({
+   Name = "Fullbright (Anti Gelap)",
+   CurrentValue = false,
+   Flag = "FullbrightToggle",
+   Callback = function(Value)
+      FullbrightEnabled = Value
+      if FullbrightEnabled then
+         Lighting.Brightness = 2
+         Lighting.ClockTime = 14
+         Lighting.FogEnd = 999999
+         Lighting.GlobalShadows = false
+         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+      else
+         Lighting.Brightness = 1
+         Lighting.ClockTime = 12
+         Lighting.GlobalShadows = true
+         Lighting.Ambient = Color3.fromRGB(128, 128, 128)
+         Rayfield:Notify({Title = "Fullbright", Content = "Pengaturan cahaya kembali normal.", Duration = 3})
+      end
+   end,
+})
+
+-- Notifikasi Akhir
+Rayfield:Notify({
+   Title = "Sukses!",
+   Content = "Semua fitur siap digunakan. Tekan RCTRL untuk menyembunyikan menu.",
+   Duration = 5,
+})
