@@ -1,0 +1,295 @@
+-- [[ CUSTOM MULTI-FEATURE HUB WITH MINIMIZE LOGO ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CustomHubGui"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Theme Colors
+local BackgroundColor = Color3.fromRGB(25, 25, 35)
+local PrimaryColor = Color3.fromRGB(45, 45, 65)
+local AccentColor = Color3.fromRGB(0, 180, 216)
+local TextColor = Color3.fromRGB(255, 255, 255)
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -210)
+MainFrame.BackgroundColor3 = BackgroundColor
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.BackgroundColor3 = PrimaryColor
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+local TitleText = Instance.new("TextLabel")
+TitleText.Size = UDim2.new(1, -50, 1, 0)
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.Text = "✨ VIP TRICKSTER HUB ✨"
+TitleText.TextColor3 = AccentColor
+TitleText.TextSize = 18
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.BackgroundTransparency = 1
+TitleText.Parent = TitleBar
+
+-- Dragging Functionality
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    local targetFrame = MainFrame.Visible and MainFrame or ScreenGui:FindFirstChild("MinimizeButton")
+    if targetFrame then
+        targetFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.x, startPos.Y.Scale, startPos.Y.Offset + delta.y)
+    end
+end
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then update(input) end
+end)
+
+-- Minimize Button (Dalam Main Frame)
+local MinBtn = Instance.new("TextButton")
+MinBtn.Size = UDim2.new(0, 30, 0, 30)
+MinBtn.Position = UDim2.new(1, -40, 0, 5)
+MinBtn.Text = "−"
+MinBtn.TextColor3 = TextColor
+MinBtn.TextSize = 20
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.BackgroundTransparency = 1
+MinBtn.Parent = TitleBar
+
+-- Content Scrolling Frame
+local Content = Instance.new("ScrollingFrame")
+Content.Size = UDim2.new(1, -20, 1, -55)
+Content.Position = UDim2.new(0, 10, 0, 50)
+Content.BackgroundTransparency = 1
+Content.CanvasSize = UDim2.new(0, 0, 0, 450)
+Content.ScrollBarThickness = 4
+Content.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Padding = UDim.new(0, 10)
+UIListLayout.Parent = Content
+
+-- Helper function to create Buttons
+local function createButton(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.BackgroundColor3 = PrimaryColor
+    btn.Text = text
+    btn.TextColor3 = TextColor
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamSemibold
+    btn.Parent = Content
+    
+    local clr = Instance.new("UICorner")
+    clr.CornerRadius = UDim.new(0, 8)
+    clr.Parent = btn
+    
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- Helper function to create TextBox (Input)
+local function createTextBox(placeholder, callback)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(1, 0, 0, 40)
+    box.BackgroundColor3 = PrimaryColor
+    box.PlaceholderText = placeholder
+    box.Text = ""
+    box.TextColor3 = TextColor
+    box.PlaceholderColor3 = Color3.fromRGB(15, 150, 242)
+    box.TextSize = 14
+    box.Font = Enum.Font.Gotham
+    box.Parent = Content
+    
+    local clr = Instance.new("UICorner")
+    clr.CornerRadius = UDim.new(0, 8)
+    clr.Parent = box
+    
+    box.FocusLost:Connect(function(enterPressed)
+        if enterPressed then callback(box.Text) end
+    end)
+    return box
+end
+
+-- --- [ FEATURES IMPLEMENTATION ] ---
+
+-- 1. WalkSpeed
+createTextBox("Set WalkSpeed (e.g. 50, lalu tekan Enter)", function(text)
+    local speed = tonumber(text)
+    if speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = speed
+    end
+end)
+
+-- Target Player TextBox for TP/View
+local targetPlayerName = ""
+createTextBox("Ketik Nama Player (untuk TP / View)", function(text)
+    targetPlayerName = text:lower()
+end)
+
+local function getTarget()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Name:lower():sub(1, #targetPlayerName) == targetPlayerName or p.DisplayName:lower():sub(1, #targetPlayerName) == targetPlayerName then
+            return p
+        end
+    end
+    return nil
+end
+
+-- 2. Teleport to Player
+createButton("📍 Teleport ke Player Target", function()
+    local target = getTarget()
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character then
+        LocalPlayer.Character:FindFirstChild("HumanoidRootPart").CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+    end
+end)
+
+-- 3. View Player (Spectate)
+local viewing = false
+local viewBtn = createButton("👁️ View Player: OFF", function()
+    local target = getTarget()
+    if not viewing and target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
+        workspace.CurrentCamera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
+        viewing = true
+        Content:FindFirstChild("👁️ View Player: OFF").Text = "👁️ View Player: ON (Klik untuk Reset)"
+    else
+        workspace.CurrentCamera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        viewing = false
+        Content:FindFirstChild("👁️ View Player: ON (Klik untuk Reset)").Text = "👁️ View Player: OFF"
+    end
+end)
+
+-- 4. ESP (Highlight Players)
+local espEnabled = false
+local espBtn
+espBtn = createButton("🟢 ESP Players: OFF", function()
+    espEnabled = not espEnabled
+    espBtn.Text = espEnabled and "🟢 ESP Players: ON" or "🟢 ESP Players: OFF"
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            if espEnabled then
+                if not p.Character:FindFirstChild("ESPHighlight") then
+                    local hl = Instance.new("Highlight")
+                    hl.Name = "ESPHighlight"
+                    hl.FillColor = Color3.fromRGB(255, 0, 100)
+                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    hl.FillTransparency = 0.4
+                    hl.Parent = p.Character
+                end
+            else
+                if p.Character:FindFirstChild("ESPHighlight") then
+                    p.Character.ESPHighlight:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+-- 5. Noclip
+local noclip = false
+local noclipBtn
+noclipBtn = createButton("👻 Noclip: OFF", function()
+    noclip = not noclip
+    noclipBtn.Text = noclip and "👻 Noclip: ON" or "👻 Noclip: OFF"
+end)
+
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+
+-- --- [ CUSTOM LOGO MINIMIZE BUTTON ] ---
+
+local MinimizeImg = Instance.new("ImageButton")
+MinimizeImg.Name = "MinimizeButton"
+MinimizeImg.Size = UDim2.new(0, 60, 0, 60)
+MinimizeImg.Position = UDim2.new(0, 20, 0, 20)
+-- ⚠️ Ganti ID di bawah ini dengan ID Asset Logo buatanmu sendiri jika punya!
+MinimizeImg.Image = "rbxassetid://13504825964" 
+MinimizeImg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+MinimizeImg.BackgroundTransparency = 0.2
+MinimizeImg.Visible = false
+MinimizeImg.Parent = ScreenGui
+
+local LogoCorner = Instance.new("UICorner")
+LogoCorner.CornerRadius = UDim.new(1, 0) -- Membuat logo menjadi bulat sempurna
+LogoCorner.Parent = MinimizeImg
+
+local LogoStroke = Instance.new("UIStroke")
+LogoStroke.Color = AccentColor
+LogoStroke.Thickness = 2
+LogoStroke.Parent = MinimizeImg
+
+-- Toggle Logic (Minimize / Maximize)
+MinBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    MinimizeImg.Visible = true
+end)
+
+MinimizeImg.MouseButton1Click:Connect(function()
+    MinimizeImg.Visible = false
+    MainFrame.Visible = true
+end)
+
+-- Membuat Tombol Logo Bisa Digeser (Draggable)
+local dragLogo, logInput, logStart, logPos
+MinimizeImg.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragLogo = true
+        logStart = input.Position
+        logPos = MinimizeImg.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragLogo = false end
+        end)
+    end
+end)
+MinimizeImg.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then logInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == logInput and dragLogo then
+        local delta = input.Position - logStart
+        MinimizeImg.Position = UDim2.new(logPos.X.Scale, logPos.X.Offset + delta.x, logPos.Y.Scale, logPos.Y.Offset + delta.y)
+    end
+end)
