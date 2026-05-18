@@ -1,0 +1,280 @@
+-- [[ CUSTOMISASI LOGO & WARNA ]]
+local LOGO_ID = "rbxassetid://1234567890" -- Ganti dengan ID Logo Custom Anda!
+local GUI_TITLE = "X-Admin Utility"
+
+-- [[ SERVICE UTAMA ]]
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+-- [[ VARIABEL STATE ]]
+local flying = false
+local noclip = false
+local flySpeed = 50
+local defaultGravity = Workspace.Gravity
+
+-- [[ MEMBUAT UI (UI CREATION) ]]
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "CustomAdminGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 420)
+MainFrame.Position = UDim2.new(0.3, 0, 0.2, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- Membuat GUI bisa digeser
+MainFrame.Parent = ScreenGui
+
+-- UI Corner (Bikin melengkung)
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- Header
+local Header = Instance.new("Frame")
+Header.Name = "Header"
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Header.BorderSizePixel = 0
+Header.Parent = MainFrame
+
+local HeaderCorner = Instance.new("UICorner")
+HeaderCorner.CornerRadius = UDim.new(0, 10)
+HeaderCorner.Parent = Header
+
+-- Custom Logo Image
+local CustomLogo = Instance.new("ImageLabel")
+CustomLogo.Name = "CustomLogo"
+CustomLogo.Size = UDim2.new(0, 35, 0, 35)
+CustomLogo.Position = UDim2.new(0, 10, 0, 7.5)
+CustomLogo.BackgroundTransparency = 1
+CustomLogo.Image = LOGO_ID
+CustomLogo.Parent = Header
+
+-- Title
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(0, 200, 1, 0)
+Title.Position = UDim2.new(0, 55, 0, 0)
+Title.Text = GUI_TITLE
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.SourceSansBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.BackgroundTransparency = 1
+Title.Parent = Header
+
+-- Content Container (Scroll Frame agar muat banyak)
+local Content = Instance.new("ScrollingFrame")
+Content.Name = "Content"
+Content.Size = UDim2.new(1, -20, 1, -60)
+Content.Position = UDim2.new(0, 10, 0, 55)
+Content.BackgroundTransparency = 1
+Content.BorderSizePixel = 0
+Content.CanvasSize = UDim2.new(0, 0, 0, 550)
+Content.ScrollBarThickness = 4
+Content.Parent = MainFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Content
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 8)
+
+-- [[ FUNCTION UTALITAS UNTUK BIKIN UI BIAR RAPI ]]
+local function createButton(name, text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Name = name
+    btn.Size = UDim2.new(1, -10, 0, 35)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansSemibold
+    btn.TextSize = 16
+    local clr = Instance.new("UICorner") clr.CornerRadius = UDim.new(0, 6) clr.Parent = btn
+    btn.MouseButton1Click:Connect(callback)
+    btn.Parent = Content
+    return btn
+end
+
+local function createTextBox(name, placeholder, callback)
+    local box = Instance.new("TextBox")
+    box.Name = name
+    box.Size = UDim2.new(1, -10, 0, 35)
+    box.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    box.PlaceholderText = placeholder
+    box.Text = ""
+    box.TextColor3 = Color3.fromRGB(255, 255, 255)
+    box.Font = Enum.Font.SourceSans
+    box.TextSize = 14
+    local clr = Instance.new("UICorner") clr.CornerRadius = UDim.new(0, 6) clr.Parent = box
+    box.FocusLost:Connect(function(enterPressed)
+        if enterPressed then callback(box.Text) end
+    end)
+    box.Parent = Content
+    return box
+end
+
+-- [[ LOGIKAFITUR / FEATURES LOGIC ]]
+
+-- 1. Fly Feature
+local flyBtn = createButton("FlyBtn", "Fly: OFF", function()
+    flying = not flying
+    local btn = Content:FindFirstChild("FlyBtn")
+    if flying then
+        btn.Text = "Fly: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+        
+        local character = LocalPlayer.Character
+        if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = character.HumanoidRootPart
+        
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "FlyBV"
+        bv.MaxForce = Vector3.new(0, 0, 0)
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.Parent = hrp
+        
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "FlyBG"
+        bg.MaxTorque = Vector3.new(0, 0, 0)
+        bg.CFrame = hrp.CFrame
+        bg.Parent = hrp
+        
+        task.spawn(function()
+            local camera = Workspace.CurrentCamera
+            while flying and character and hrp do
+                bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+                bg.CFrame = camera.CFrame
+                
+                local dir = Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0, 1, 0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then dir = dir - Vector3.new(0, 1, 0) end
+                
+                bv.Velocity = dir.Unit * flySpeed
+                if dir --[[Jika diam]] == Vector3.new(0,0,0) then bv.Velocity = Vector3.new(0,0,0) end
+                task.wait()
+            end
+            if bv then bv:Destroy() end
+            if bg then bg:Destroy() end
+        end)
+    else
+        btn.Text = "Fly: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    end
+end)
+
+-- 2. Noclip Feature
+createButton("NoclipBtn", "Noclip: OFF", function()
+    noclip = not noclip
+    local btn = Content:FindFirstChild("NoclipBtn")
+    if noclip then
+        btn.Text = "Noclip: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    else
+        btn.Text = "Noclip: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if noclip and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+-- 3. WalkSpeed Changer
+createTextBox("SpeedBox", "Masukkan WalkSpeed (Contoh: 50)", function(text)
+    local speed = tonumber(text)
+    if speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = speed
+    end
+end)
+
+-- 4. Gravity Changer
+createTextBox("GravityBox", "Masukkan Gravity (Default: 196.2)", function(text)
+    local grav = tonumber(text)
+    if grav then
+        Workspace.Gravity = grav
+    else
+        Workspace.Gravity = defaultGravity
+    end
+end)
+
+-- Fungsi pembantu mencari player parsial (misal mengetik "boba" untuk "BobaPlayer123")
+local function findTargetPlayer(name)
+    for _, p in pairs(Players:GetPlayers()) do
+        if string.lower(p.Name):sub(1, #name) == string.lower(name) or string.lower(p.DisplayName):sub(1, #name) == string.lower(name) then
+            return p
+        end
+    end
+    return nil
+end
+
+-- 5. Teleport to Player
+createTextBox("TPBox", "TP ke Player (Ketik nama player)", function(text)
+    local target = findTargetPlayer(text)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+        end
+    end
+end)
+
+-- 6. View Player (Spectate)
+local spectating = false
+createTextBox("ViewBox", "View Player (Kosongkan untuk Reset)", function(text)
+    local camera = Workspace.CurrentCamera
+    if text == "" then
+        camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    else
+        local target = findTargetPlayer(text)
+        if target and target.Character and target.Character:FindFirstChildOfClass("Humanoid") then
+            camera.CameraSubject = target.Character:FindFirstChildOfClass("Humanoid")
+        end
+    end
+end)
+
+-- [[ TOMBOL CLOSE / MINIMIZE ]]
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 30, 0, 30)
+ToggleBtn.Position = UDim2.new(1, -40, 0, 10)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(192, 57, 43)
+ToggleBtn.Text = "-"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextSize = 20
+local btnCorner = Instance.new("UICorner") btnCorner.CornerRadius = UDim.new(0, 6) btnCorner.Parent = ToggleBtn
+ToggleBtn.Parent = Header
+
+local isOpen = true
+ToggleBtn.MouseButton1Click:Connect(function()
+    isOpen = not isOpen
+    if isOpen then
+        MainFrame:TweenSize(UDim2.new(0, 350, 0, 420), "Out", "Quad", 0.3, true)
+        Content.Visible = true
+        ToggleBtn.Text = "-"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(192, 57, 43)
+    else
+        MainFrame:TweenSize(UDim2.new(0, 350, 0, 50), "Out", "Quad", 0.3, true)
+        Content.Visible = false
+        ToggleBtn.Text = "+"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    end
+end)
