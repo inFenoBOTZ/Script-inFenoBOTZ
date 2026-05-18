@@ -1,0 +1,61 @@
+local ADMIN_USERS = {"UsernameKamuDiSini"} -- Ganti dengan Username Roblox-mu
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Buat jembatan komunikasi antara Server dan Layar Player (RemoteEvent)
+local tpEvent = Instance.new("RemoteEvent")
+tpEvent.Name = "EfekTeleport"
+tpEvent.Parent = ReplicatedStorage
+
+local function isAdmin(player)
+	for _, name in pairs(ADMIN_USERS) do
+		if player.Name:lower() == name:lower() then return true end
+	end
+	return false
+end
+
+game.Players.PlayerAdded:Connect(function(player)
+	player.Chatted:Connect(function(message)
+		if not isAdmin(player) then return end
+		
+		if message:sub(1, 4):lower() == "/tp " then
+			local targetName = message:sub(5)
+			local targetPlayer = nil
+			
+			for _, p in pairs(game.Players:GetPlayers()) do
+				if string.find(p.Name:lower(), targetName:lower()) and p ~= player then
+					targetPlayer = p
+					break
+				end
+			end
+			
+			if targetPlayer and player.Character and targetPlayer.Character then
+				local myRoot = player.Character:FindFirstChild("HumanoidRootPart")
+				local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+				
+				if myRoot and targetRoot then
+					-- 1. Kirim sinyal ke layar kamu untuk memunculkan LOGO CUSTOM
+					tpEvent:FireClient(player)
+					
+					-- 2. Efek Partikel Keren saat Berangkat
+					local p1 = Instance.new("ParticleEmitter")
+					p1.Texture = "rbxassetid://241775791" -- Efek Cahaya/Sparkle
+					p1.LightEmission = 1
+					p1.Color = ColorSequence.new(Color3.fromRGB(0, 255, 255)) -- Warna Cyan
+					p1.Size = NumberSequence.new(2, 0)
+					p1.Parent = myRoot
+					
+					task.wait(0.3) -- Jeda animasi logo muncul
+					
+					-- 3. Proses Pindah Tempat ke Depan Target
+					myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, -4)
+					
+					-- Hapus partikel lama, buat partikel baru di tempat tujuan
+					p1:Destroy()
+					local p2 = p1:Clone()
+					p2.Parent = myRoot
+					game:GetService("Debris"):AddItem(p2, 1)
+				end
+			end
+		end
+	end)
+end)
