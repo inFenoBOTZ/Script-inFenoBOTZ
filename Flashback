@@ -1,0 +1,68 @@
+local Players = game:Service("Players")
+local TweenService = game:Service("TweenService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local screenGui = script.Parent
+
+-- --- 1. MEMBUAT FRAME FLASHBACK ---
+local flashFrame = Instance.new("Frame")
+flashFrame.Name = "FlashFrame"
+flashFrame.Size = UDim2.new(1, 0, 1, 0)
+flashFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Warna putih (bisa diganti hitam: 0,0,0)
+flashFrame.BackgroundTransparency = 1 -- Awalnya transparan
+flashFrame.ZIndex = 10 -- Memastikan di atas UI lain
+flashFrame.Parent = screenGui
+
+-- --- 2. MEMBUAT TOMBOL MINIMIZE DENGAN LOGO CUSTOM ---
+local minimizeBtn = Instance.new("ImageButton")
+minimizeBtn.Name = "MinimizeButton"
+minimizeBtn.Size = UDim2.new(0, 50, 0, 50) -- Ukuran tombol (50x50 pixel)
+minimizeBtn.Position = UDim2.new(0, 10, 0, 10) -- Posisi di pojok kiri atas
+minimizeBtn.BackgroundTransparency = 1
+
+-- GANTI ID DI BAWAH INI DENGAN ID LOGO/DECAL KAMU SENDIRI
+minimizeBtn.Image = "rbxassetid://123456789" -- Jalur ID asset Roblox
+
+minimizeBtn.Parent = screenGui
+
+-- --- 3. FUNGSI EFEK FLASHBACK ---
+local function playFlashback()
+	-- Efek memutih dengan cepat
+	local flashIn = TweenService:Create(flashFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+	-- Efek memudar kembali ke normal secara perlahan
+	local flashOut = TweenService:Create(flashFrame, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1})
+	
+	flashIn:Play()
+	flashIn.Completed:Wait()
+	task.wait(0.1) -- Menahan layar putih sebentar
+	flashOut:Play()
+end
+
+-- --- 4. DETEKSI RESPAWN (TIDAK AKAN HILANG) ---
+player.CharacterAdded:Connect(function(character)
+	-- Tunggu sebentar sampai karakter benar-benar siap di workspace
+	task.wait(0.5) 
+	if screenGui.Enabled then
+		playFlashback()
+	end
+end)
+
+-- --- 5. FUNGSI TOMBOL MINIMIZE / TOGGLE ON-OFF ---
+local isMinimized = false
+
+minimizeBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	
+	if isMinimized then
+		-- Jika di-minimize, efek flashback dimatikan dan frame disembunyikan
+		flashFrame.BackgroundTransparency = 1
+		screenGui.Enabled = false
+		minimizeBtn.ImageTransparency = 0.5 -- Membuat logo agak pudar menandakan nonaktif
+	else
+		-- Jika diaktifkan kembali
+		screenGui.Enabled = true
+		minimizeBtn.ImageTransparency = 0
+		playFlashback() -- Test efek langsung saat diaktifkan
+	end
+end)
