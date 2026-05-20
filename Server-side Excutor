@@ -1,0 +1,3 @@
+-- Contoh script yang memberikan akses Server-Side Executor ke pembuatnya
+local code = 1234567890 -- Ini biasanya ID Asset/Module tersembunyi
+require(code)("PemilikScript")
