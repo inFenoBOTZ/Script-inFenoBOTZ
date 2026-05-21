@@ -1,0 +1,33 @@
+-- Server Script (Taruh di ServerScriptService)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunCodeEvent = ReplicatedStorage:WaitForChild("RunCode")
+
+-- DAFTAR USERNAME YANG BOLEH PAKAI (Ganti dengan Username kamu)
+local ALLOWED_USERS = {
+	["UsernameKamuDiRoblox"] = true,
+	["TemanKamu"] = true
+}
+
+RunCodeEvent.OnServerEvent:Connect(function(player, codeString)
+	-- Sistem Keamanan: Memastikan hanya kamu yang bisa mengeksekusi
+	if not ALLOWED_USERS[player.Name] then
+		warn(player.Name .. " mencoba mengeksekusi script tanpa izin!")
+		return
+	end
+
+	print("Mengeksekusi script dari: " .. player.Name)
+	
+	-- Menjalankan string menjadi kode menggunakan loadstring
+	local success, errorMessage = pcall(function()
+		local compiledCode = loadstring(codeString)
+		if compiledCode then
+			compiledCode()
+		else
+			error("Gagal mengompilasi kode (Syntax Error)")
+		end
+	end)
+
+	if not success then
+		warn("Error saat eksekusi: " .. tostring(errorMessage))
+	end
+end)
