@@ -1,0 +1,92 @@
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
+
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "SlideDashGUI"
+GUI.ResetOnSpawn = false
+GUI.Parent = Player:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0,220,0,120)
+Main.Position = UDim2.new(0.05,0,0.3,0)
+Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Main.BorderSizePixel = 0
+Main.Parent = GUI
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,-30,0,30)
+Title.BackgroundTransparency = 1
+Title.Text = "hidup Jokowi by admin11"
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextScaled = true
+Title.Parent = Main
+
+local Logo = Instance.new("ImageLabel")
+Logo.Size = UDim2.new(0,50,0,50)
+Logo.Position = UDim2.new(0,5,0,35)
+Logo.BackgroundTransparency = 1
+Logo.Image = "rbxassetid://0" -- Ganti ID logo
+Logo.Parent = Main
+
+local Info = Instance.new("TextLabel")
+Info.Size = UDim2.new(0,150,0,50)
+Info.Position = UDim2.new(0,60,0,35)
+Info.BackgroundTransparency = 1
+Info.Text = "Q = Slide Dash"
+Info.TextColor3 = Color3.new(1,1,1)
+Info.TextScaled = true
+Info.Parent = Main
+
+local Minimize = Instance.new("TextButton")
+Minimize.Size = UDim2.new(0,25,0,25)
+Minimize.Position = UDim2.new(1,-28,0,2)
+Minimize.Text = "-"
+Minimize.Parent = Main
+
+local Minimized = false
+
+Minimize.MouseButton1Click:Connect(function()
+	Minimized = not Minimized
+
+	if Minimized then
+		Main.Size = UDim2.new(0,220,0,30)
+		Logo.Visible = false
+		Info.Visible = false
+		Minimize.Text = "+"
+	else
+		Main.Size = UDim2.new(0,220,0,120)
+		Logo.Visible = true
+		Info.Visible = true
+		Minimize.Text = "-"
+	end
+end)
+
+local Cooldown = false
+
+UIS.InputBegan:Connect(function(Input, GP)
+	if GP then return end
+
+	if Input.KeyCode == Enum.KeyCode.Q and not Cooldown then
+		Cooldown = true
+
+		local Character = Player.Character
+		if Character then
+			local HRP = Character:FindFirstChild("HumanoidRootPart")
+
+			if HRP then
+				local BV = Instance.new("BodyVelocity")
+				BV.MaxForce = Vector3.new(100000,0,100000)
+				BV.Velocity = HRP.CFrame.LookVector * 80
+				BV.Parent = HRP
+
+				task.wait(0.25)
+				BV:Destroy()
+			end
+		end
+
+		task.wait(1)
+		Cooldown = false
+	end
+end)
