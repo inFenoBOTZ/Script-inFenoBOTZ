@@ -1,0 +1,169 @@
+-- [[ BIAR GAK DUPLIKAT KALAU DI-EXECUTE BERULANG KALI ]] --
+if game:GetService("CoreGui"):FindFirstChild("CustomMenuGui") then
+    game:GetService("CoreGui"):FindFirstChild("CustomMenuGui"):Destroy()
+end
+
+-- [[ SERVICES ]] --
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Debris = game:GetService("Debris")
+
+local player = Players.LocalPlayer
+
+-- [[ CONFIGURATION ]] --
+local DASH_KEY = Enum.KeyCode.Q       -- Tombol dash (Bisa kamu ganti)
+local DASH_SPEED = 75                -- Kecepatan luncuran
+local DASH_DURATION = 0.25           -- Durasi slide
+local DASH_COOLDOWN = 1.5            -- Waktu tunggu (detik)
+local isDashing = false
+local canDash = true
+
+-- [[ SYSTEM SCREEN GUI (Dimasukkan ke CoreGui agar aman) ]] --
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CustomMenuGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game:GetService("CoreGui") -- Menggunakan CoreGui khusus Executor
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 220, 0, 110)
+mainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true -- Bisa digeser-geser di layar
+mainFrame.Parent = screenGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = mainFrame
+
+-- Title / Logo Text
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(0, 170, 0, 30)
+titleLabel.Position = UDim2.new(0, 10, 0, 5)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "hidup Jokowi by admin11"
+titleLabel.TextColor3 = Color3.fromRGB(255, 215, 0) -- Warna Emas
+titleLabel.Font = Enum.Font.SourceSansBold
+titleLabel.TextSize = 16
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = mainFrame
+
+-- Custom Logo (Image)
+local customLogo = Instance.new("ImageLabel")
+customLogo.Name = "CustomLogo"
+customLogo.Size = UDim2.new(0, 50, 0, 50)
+customLogo.Position = UDim2.new(0, 10, 0, 45)
+customLogo.BackgroundTransparency = 1
+customLogo.Image = "rbxassetid://6071575912" -- GANTI ID LOGO DI SINI
+customLogo.Parent = mainFrame
+
+-- Status Info Text
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name = "StatusLabel"
+statusLabel.Size = UDim2.new(0, 130, 0, 30)
+statusLabel.Position = UDim2.new(0, 70, 0, 55)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Dash Ready [Q]"
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+statusLabel.Font = Enum.Font.SourceSansItalic
+statusLabel.TextSize = 14
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = mainFrame
+
+-- Minimize Button
+local miniButton = Instance.new("TextButton")
+miniButton.Name = "MinimizeButton"
+miniButton.Size = UDim2.new(0, 30, 0, 25)
+miniButton.Position = UDim2.new(1, -35, 0, 5)
+miniButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+miniButton.Text = "-"
+miniButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+miniButton.Font = Enum.Font.SourceSansBold
+miniButton.TextSize = 18
+miniButton.Parent = mainFrame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 4)
+btnCorner.Parent = miniButton
+
+-- [[ MINIMIZE FUNCTIONALITY ]] --
+local isMinimized = false
+miniButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    if isMinimized then
+        TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 40)}):Play()
+        customLogo.Visible = false
+        statusLabel.Visible = false
+        miniButton.Text = "+"
+    else
+        TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = UDim2.new(0, 220, 0, 110)}):Play()
+        task.wait(0.1)
+        customLogo.Visible = true
+        statusLabel.Visible = true
+        miniButton.Text = "-"
+    end
+end)
+
+-- [[ SLIDE DASH MECHANIC ]] --
+local function performDash()
+    local character = player.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    if not canDash or isDashing or humanoid.MoveDirection.Magnitude == 0 then return end
+    
+    canDash = false
+    isDashing = true
+    statusLabel.Text = "Dashing..."
+    statusLabel.TextColor3 = Color3.fromRGB(255, 165, 0)
+    
+    -- Ambil arah jalan
+    local dashDirection = humanoid.MoveDirection
+    
+    -- Efek Dorongan (Velocity)
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(100000, 0, 100000) -- Kunci sumbu Y supaya ga terbang
+    bodyVelocity.Velocity = dashDirection * DASH_SPEED
+    bodyVelocity.Parent = rootPart
+    
+    -- Efek Slide (Menurunkan badan / HipHeight)
+    local originalHipHeight = humanoid.HipHeight
+    humanoid.HipHeight = -1.5 
+    
+    -- Hapus efek setelah durasi selesai
+    Debris:AddItem(bodyVelocity, DASH_DURATION)
+    task.delay(DASH_DURATION, function()
+        humanoid.HipHeight = originalHipHeight
+        isDashing = false
+    end)
+    
+    -- Cooldown System
+    task.wait(DASH_DURATION)
+    local cooldownLeft = DASH_COOLDOWN
+    while cooldownLeft > 0 do
+        statusLabel.Text = string.format("Cooldown: %.1fs", cooldownLeft)
+        statusLabel.TextColor3 = Color3.fromRGB(220, 53, 69)
+        task.wait(0.1)
+        cooldownLeft = cooldownLeft - 0.1
+    end
+    
+    canDash = true
+    statusLabel.Text = "Dash Ready [Q]"
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+end
+
+-- [[ DETEKSI INPUT ]] --
+UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+    if gameProcessedEvent then return end
+    if input.KeyCode == DASH_KEY then
+        performDash()
+    end
+end)
