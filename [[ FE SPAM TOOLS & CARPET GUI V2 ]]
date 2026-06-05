@@ -1,0 +1,173 @@
+-- [[ FE SPAM TOOLS & CARPET GUI V2 ]] --
+-- Fitur: Spam Carpet, Spam Tools, Auto-Drop, Minimize Button
+
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local ToggleButton = Instance.new("TextButton")
+local SpamCarpetBtn = Instance.new("TextButton")
+local SpamToolsBtn = Instance.new("TextButton")
+local StatusLabel = Instance.new("TextLabel")
+
+-- Konfigurasi UI Bawaan
+ScreenGui.Name = "FESpamMenu"
+ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+MainFrame.Position = UDim2.new(0.1, 0, 0.2, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 280)
+MainFrame.Active = true
+MainFrame.Draggable = true -- Membuat GUI bisa digeser
+
+Title.Name = "Title"
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+Title.Size = UDim2.new(0, 220, 0, 40)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "iNferno FE Spam v2"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+
+-- Tombol Minimize (X)
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Parent = ScreenGui
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+ToggleButton.Position = UDim2.new(0.1, 0, 0.2, -45)
+ToggleButton.Size = UDim2.new(0, 40, 0, 40)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.Text = "X"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 20
+
+-- Logika Minimize
+local minimized = false
+ToggleButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    MainFrame.Visible = not minimized
+    if minimized then
+        ToggleButton.Text = "O"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    else
+        ToggleButton.Text = "X"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    end
+end)
+
+-- Tombol Spam Carpet
+SpamCarpetBtn.Name = "SpamCarpetBtn"
+SpamCarpetBtn.Parent = MainFrame
+SpamCarpetBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+SpamCarpetBtn.Position = UDim2.new(0, 10, 0, 60)
+SpamCarpetBtn.Size = UDim2.new(0, 200, 0, 50)
+SpamCarpetBtn.Font = Enum.Font.SourceSans
+SpamCarpetBtn.Text = "Toggle Spam Carpet: OFF"
+SpamCarpetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpamCarpetBtn.TextSize = 16
+
+-- Tombol Spam Tools
+SpamToolsBtn.Name = "SpamToolsBtn"
+SpamToolsBtn.Parent = MainFrame
+SpamToolsBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+SpamToolsBtn.Position = UDim2.new(0, 10, 0, 130)
+SpamToolsBtn.Size = UDim2.new(0, 200, 0, 50)
+SpamToolsBtn.Font = Enum.Font.SourceSans
+SpamToolsBtn.Text = "Toggle Spam Tools: OFF"
+SpamToolsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpamToolsBtn.TextSize = 16
+
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 10, 0, 200)
+StatusLabel.Size = UDim2.new(0, 200, 0, 60)
+StatusLabel.Font = Enum.Font.SourceSansItalic
+StatusLabel.Text = "Status: Idle\nPastikan game punya item/carpet"
+StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+StatusLabel.TextSize = 14
+
+-- [[ LOGIKA SPAM FUNCTION ]] --
+
+local LP = game.Players.LocalPlayer
+local spamCarpetActive = false
+local spamToolsActive = false
+
+-- Fungsi nyari item Karpet di game (bisa disesuaikan namanya)
+local function getCarpet()
+    local carpet = LP.Backpack:FindFirstChild("Carpet") or LP.Character:FindFirstChild("Carpet")
+    if not carpet then
+        -- Cari alternatif nama karpet lain di backpack
+        for _, item in pairs(LP.Backpack:GetChildren()) do
+            if string.find(string.lower(item.Name), "carpet") or string.find(string.lower(item.Name), "karpet") then
+                return item
+            end
+        end
+    end
+    return carpet
+end
+
+-- Loop Spam Carpet
+task.spawn(function()
+    while task.wait(0.1) do
+        if spamCarpetActive then
+            local carpet = getCarpet()
+            if carpet and LP.Character and LP.Character:FindFirstChild("Humanoid") then
+                -- Memaksa karakter memakai dan melepas karpet dengan cepat (Glitch Terbang)
+                LP.Character.Humanoid:EquipTool(carpet)
+                task.wait(0.05)
+                carpet.Parent = LP.Backpack
+                StatusLabel.Text = "Status: Spamming Carpet..."
+            else
+                StatusLabel.Text = "Status: Karpet tidak ditemukan!"
+            end
+        end
+    end
+end)
+
+-- Loop Spam/Drop Semua Tools di Backpack
+task.spawn(function()
+    while task.wait(0.05) do
+        if spamToolsActive then
+            if #LP.Backpack:GetChildren() > 0 or (LP.Character and LP.Character:FindFirstChildOfClass("Tool")) then
+                StatusLabel.Text = "Status: Spamming/Dropping Tools..."
+                
+                -- Ambil semua tool ke tangan
+                for _, tool in pairs(LP.Backpack:GetChildren()) do
+                    if tool:IsA("Tool") then
+                        LP.Character.Humanoid:EquipTool(tool)
+                        task.wait()
+                        -- FE Drop (Jika game mengizinkan CanDrop)
+                        tool.Parent = workspace 
+                    end
+                end
+            else
+                StatusLabel.Text = "Status: Backpack Kosong!"
+            end
+        end
+    end
+end)
+
+-- Kontrol Tombol Aktif/Nonaktif
+SpamCarpetBtn.MouseButton1Click:Connect(function()
+    spamCarpetActive = not spamCarpetActive
+    if spamCarpetActive then
+        SpamCarpetBtn.Text = "Toggle Spam Carpet: ON"
+        SpamCarpetBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
+    else
+        SpamCarpetBtn.Text = "Toggle Spam Carpet: OFF"
+        SpamCarpetBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
+
+SpamToolsBtn.MouseButton1Click:Connect(function()
+    spamToolsActive = not spamToolsActive
+    if spamToolsActive then
+        SpamToolsBtn.Text = "Toggle Spam Tools: ON"
+        SpamToolsBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
+    else
+        SpamToolsBtn.Text = "Toggle Spam Tools: OFF"
+        SpamToolsBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end
+end)
