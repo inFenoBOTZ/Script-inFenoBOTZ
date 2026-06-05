@@ -1,0 +1,184 @@
+-- UNIVERSAL SIDE DASH UI FOR EXECUTOR
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local VirtualUser = game:GetService("VirtualUser")
+
+local player = Players.LocalPlayer
+local targetGui = game:GetService("CoreGui") -- Menggunakan CoreGui agar UI tidak hilang saat karakter mati/reset
+
+-- Mencegah penumpukan UI jika script di-execute ulang
+if targetGui:FindFirstChild("UniversalExecutorDash") then
+	targetGui.UniversalExecutorDash:Destroy()
+end
+
+-- Base ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "UniversalExecutorDash"
+screenGui.ResetOnSpawn = false
+screenGui.DisplayOrder = 999 -- Default di paling depan
+screenGui.Parent = targetGui
+
+-- --- 1. MEMBUAT STRUKTUR SIDE DASH ---
+local Sidebar = Instance.new("Frame")
+Sidebar.Name = "Sidebar"
+Sidebar.Size = UDim2.new(0, 240, 1, 0)
+Sidebar.Position = UDim2.new(0, 0, 0, 0) -- Default posisi Kiri
+Sidebar.BackgroundColor3 = Color3.fromRGB(15, 17, 26)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = screenGui
+
+-- Logo Custom (Bisa diganti ID Asset-nya)
+local Logo = Instance.new("ImageLabel")
+Logo.Name = "CustomLogo"
+Logo.Size = UDim2.new(0, 45, 0, 45)
+Logo.Position = UDim2.new(0, 15, 0, 15)
+Logo.BackgroundColor3 = Color3.fromRGB(28, 31, 46)
+Logo.BorderSizePixel = 0
+-- GANTI ID DI BAWAH INI DENGAN ID LOGO ROBLOX-MU (DECAL ID)
+Logo.Image = "rbxassetid://10846014494" 
+Logo.Parent = Sidebar
+
+-- Judul Dashboard
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(0, 140, 0, 45)
+Title.Position = UDim2.new(0, 70, 0, 15)
+Title.BackgroundTransparency = 1
+Title.Text = "EXEC-DASH"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Sidebar
+
+-- Tombol Toggle Minimize (Tombol kecil di luar badan Sidebar)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleMinimize"
+ToggleBtn.Size = UDim2.new(0, 35, 0, 35)
+ToggleBtn.Position = UDim2.new(1, 10, 0, 20) -- Muncul di sebelah kanan luar sidebar
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(99, 102, 241)
+ToggleBtn.Text = "<"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 18
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Parent = Sidebar
+
+-- Tombol Switch Kanan / Kiri
+local PositionBtn = Instance.new("TextButton")
+PositionBtn.Size = UDim2.new(0, 200, 0, 35)
+PositionBtn.Position = UDim2.new(0, 20, 0, 85)
+PositionBtn.BackgroundColor3 = Color3.fromRGB(30, 41, 59)
+PositionBtn.Text = "Posisi: Samping Kiri"
+PositionBtn.TextColor3 = Color3.fromRGB(226, 232, 240)
+PositionBtn.TextSize = 13
+PositionBtn.Font = Enum.Font.Gotham
+PositionBtn.Parent = Sidebar
+
+-- Tombol Layer Depan / Belakang
+local LayerBtn = Instance.new("TextButton")
+LayerBtn.Size = UDim2.new(0, 200, 0, 35)
+LayerBtn.Position = UDim2.new(0, 20, 0, 130)
+LayerBtn.BackgroundColor3 = Color3.fromRGB(30, 41, 59)
+LayerBtn.Text = "Layer: Depan (Overlay)"
+LayerBtn.TextColor3 = Color3.fromRGB(226, 232, 240)
+LayerBtn.TextSize = 13
+LayerBtn.Font = Enum.Font.Gotham
+LayerBtn.Parent = Sidebar
+
+-- Tombol Fitur / Cheat Automation (Contoh: Anti-AFK & Auto-Jump)
+local ActionBtn = Instance.new("TextButton")
+ActionBtn.Size = UDim2.new(0, 200, 0, 45)
+ActionBtn.Position = UDim2.new(0, 20, 0, 195)
+ActionBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68) -- Merah saat mati
+ActionBtn.Text = "AUTOMATION: OFF"
+ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ActionBtn.TextSize = 13
+ActionBtn.Font = Enum.Font.GothamBold
+ActionBtn.Parent = Sidebar
+
+
+-- --- 2. LOGIKA & FITUR INTERAKSI ---
+local isMinimized = false
+local isLeft = true
+local isDepan = true
+local actionAktif = false
+
+-- Fungsi Toggle Minimize (Menyembunyikan / Membuka Menu)
+ToggleBtn.MouseButton1Click:Connect(function()
+	isMinimized = not isMinimized
+	local targetX = 0
+	
+	if isMinimized then
+		targetX = isLeft and -240 or 240
+		ToggleBtn.Text = (isLeft and ">" or "<")
+	else
+		targetX = 0
+		ToggleBtn.Text = (isLeft and "<" or ">")
+	end
+	
+	local targetPos = isLeft and UDim2.new(0, targetX, 0, 0) or UDim2.new(1, targetX - 240, 0, 0)
+	TweenService:Create(Sidebar, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = targetPos}):Play()
+end)
+
+-- Fungsi Pindah Posisi Kanan / Kiri
+PositionBtn.MouseButton1Click:Connect(function()
+	isLeft = not isLeft
+	isMinimized = false
+	
+	if isLeft then
+		Sidebar.Position = UDim2.new(0, 0, 0, 0)
+		ToggleBtn.Position = UDim2.new(1, 10, 0, 20)
+		ToggleBtn.Text = "<"
+		PositionBtn.Text = "Posisi: Samping Kiri"
+	else
+		Sidebar.Position = UDim2.new(1, -240, 0, 0)
+		ToggleBtn.Position = UDim2.new(0, -45, 0, 20) -- Tombol pindah ke sisi kiri luar frame
+		ToggleBtn.Text = ">"
+		PositionBtn.Text = "Posisi: Samping Kanan"
+	end
+end)
+
+-- Fungsi Pindah Lapisan Layer Depan / Belakang
+LayerBtn.MouseButton1Click:Connect(function()
+	isDepan = not isDepan
+	if isDepan then
+		screenGui.DisplayOrder = 999 -- Di depan semua UI game bawaan
+		LayerBtn.Text = "Layer: Depan (Overlay)"
+	else
+		screenGui.DisplayOrder = 0 -- Di belakang / Sejajar dengan UI game biasa
+		LayerBtn.Text = "Layer: Belakang"
+	end
+end)
+
+-- Fungsi Mengaktifkan Tombol Automation
+ActionBtn.MouseButton1Click:Connect(function()
+	actionAktif = not actionAktif
+	if actionAktif then
+		ActionBtn.BackgroundColor3 = Color3.fromRGB(16, 185, 129) -- Hijau saat aktif
+		ActionBtn.Text = "AUTOMATION: ON"
+	else
+		ActionBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68) -- Merah saat mati
+		ActionBtn.Text = "AUTOMATION: OFF"
+	end
+end)
+
+-- LOOP UTAMA AUTOMATION (Anti-AFK & Auto-Jump)
+-- Fungsi Anti-AFK mencegah kamu disconnect (Error 260) dari game Roblox
+player.Idled:Connect(function()
+	if actionAktif then
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.new(0,0))
+	end
+end)
+
+-- Fungsi Pendukung (Aksi berulang di dalam game, contoh: Melompat otomatis)
+task.spawn(function()
+	while true do
+		task.wait(0.8) -- Kecepatan aksi lompat otomatis
+		if actionAktif and player.Character then
+			local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid then 
+				humanoid.Jump = true 
+			end
+		end
+	end
+end)
