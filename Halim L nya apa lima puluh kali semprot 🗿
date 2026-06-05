@@ -1,0 +1,254 @@
+local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/main/Addons/SaveManager.lua"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/main/Addons/InterfaceManager.lua"))()
+
+-- REMOVE ATAU GANTI ID DI BAWAH JIKA INGIN MENGGUNAKAN LOGO CUSTOM ANDA
+-- Format ID harus: "rbxassetid://NOMOR_ID"
+local CUSTOM_LOGO = "rbxassetid://1234567890" 
+
+local Window = Fluent:CreateWindow({
+    Title = "Custom Exploits Menu",
+    SubTitle = "by Gemini AI",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true, 
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl -- TOMBOL MINIMIZE (Tekan CTRL Kiri untuk sembunyikan/buka GUI)
+})
+
+-- Menambahkan Logo Custom jika diset
+if CUSTOM_LOGO ~= "rbxassetid://1234567890" then
+    pcall(function()
+        Window.Dialog.Parent.Frame.Icon.Image = CUSTOM_LOGO
+    end)
+end
+
+-- Tabs
+local Tabs = {
+    Movement = Window:AddTab({ Title = "Movement", Icon = "run" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+-- ==========================================
+-- VARIABLES & LOCAL FUNCTIONS
+-- ==========================================
+local Player = game.Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+Player.CharacterAdded:Connect(function(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    RootPart = char:WaitForChild("HumanoidRootPart")
+end)
+
+-- Fly Variables
+local flying = false
+local flySpeed = 50
+local flyConnection
+
+-- Noclip Variables
+local noclip = false
+local noclipConnection
+
+-- Dash Variables
+local dashEnabled = false
+local dashCooldown = false
+local dashForce = 120
+
+-- ==========================================
+-- FEATURE: FLY (TOGGLE)
+-- ==========================================
+local function startFly()
+    local BV = Instance.new("BodyVelocity")
+    local BG = Instance.new("BodyGyro")
+    
+    BV.maxForce = Vector3.new(1e5, 1e5, 1e5)
+    BV.velocity = Vector3.new(0, 0, 0)
+    BV.Parent = RootPart
+    
+    BG.maxTorque = Vector3.new(1e5, 1e5, 1e5)
+    BG.cframe = RootPart.CFrame
+    BG.Parent = RootPart
+    
+    flyConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not flying then 
+            BV:Destroy()
+            BG:Destroy()
+            flyConnection:Disconnect()
+            return 
+        end
+        
+        local camera = workspace.CurrentCamera
+        local moveDirection = Vector3.new(0,0,0)
+        
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+            moveDirection = moveDirection + camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+            moveDirection = moveDirection - camera.CFrame.LookVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+            moveDirection = moveDirection - camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+            moveDirection = moveDirection + camera.CFrame.RightVector
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+            moveDirection = moveDirection + Vector3.new(0, 1, 0)
+        end
+        if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
+            moveDirection = moveDirection - Vector3.new(0, 1, 0)
+        end
+        
+        BV.velocity = moveDirection.Unit * flySpeed
+        if moveDirection == Vector3.new(0,0,0) then
+            BV.velocity = Vector3.new(0,0,0)
+        end
+        BG.cframe = camera.CFrame
+    end)
+end
+
+Tabs.Movement:AddToggle("FlyToggle", {
+    Title = "Enable Fly",
+    Description = "Terbang menggunakan W,A,S,D + Space/Shift",
+    Default = false,
+    Callback = function(Value)
+        flying = Value
+        if flying then
+            startFly()
+        end
+    end
+})
+
+Tabs.Movement:AddSlider("FlySpeedSlider", {
+    Title = "Fly Speed",
+    Description = "Atur kecepatan terbang",
+    Default = 50,
+    Min = 10,
+    Max = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        flySpeed = Value
+    end
+})
+
+-- ==========================================
+-- FEATURE: SIDE DASH (TOGGLE)
+-- ==========================================
+local function dash(direction)
+    if not dashEnabled or dashCooldown or not RootPart then return end
+    dashCooldown = true
+    
+    local camera = workspace.CurrentCamera
+    local dashVelocity = Vector3.new(0,0,0)
+    
+    if direction == "Left" then
+        dashVelocity = -camera.CFrame.RightVector * dashForce
+    elseif direction == "Right" then
+        dashVelocity = camera.CFrame.RightVector * dashForce
+    end
+    
+    local BV = Instance.new("BodyVelocity")
+    BV.maxForce = Vector3.new(1e5, 0, 1e5) -- Hanya gerak horizontal
+    BV.velocity = dashVelocity
+    BV.Parent = RootPart
+    
+    task.wait(0.15) -- Durasi dash
+    BV:Destroy()
+    
+    task.wait(0.8) -- Cooldown dash (0.8 detik)
+    dashCooldown = false
+end
+
+Tabs.Movement:AddToggle("DashToggle", {
+    Title = "Enable Side Dash",
+    Description = "Aktifkan dash tombol Q (Kiri) & E (Kanan)",
+    Default = false,
+    Callback = function(Value)
+        dashEnabled = Value
+    end
+})
+
+-- Deteksi Keyboard untuk Dash (Hanya jalan saat Toggle bernilai TRUE)
+game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if not dashEnabled then return end
+    
+    if input.KeyCode == Enum.KeyCode.Q then
+        dash("Left")
+    elseif input.KeyCode == Enum.KeyCode.E then
+        dash("Right")
+    end
+end)
+
+
+-- ==========================================
+-- FEATURE: NOCLIP
+-- ==========================================
+noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+    if noclip and Character then
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.CanCollide then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+Tabs.Movement:AddToggle("NoclipToggle", {
+    Title = "Enable Noclip",
+    Default = false,
+    Callback = function(Value)
+        noclip = Value
+    end
+})
+
+-- ==========================================
+-- FEATURE: PARKOUR (JUMP POWER & SPEED)
+-- ==========================================
+Tabs.Movement:AddSlider("JumpSlider", {
+    Title = "Parkour Jump Power",
+    Description = "Ubah kekuatan lompatan",
+    Default = 50,
+    Min = 50,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(Value)
+        Humanoid.UseJumpPower = true
+        Humanoid.JumpPower = Value
+    end
+})
+
+Tabs.Movement:AddSlider("SpeedSlider", {
+    Title = "Walk Speed",
+    Description = "Ubah kecepatan lari",
+    Default = 16,
+    Min = 16,
+    Max = 300,
+    Rounding = 0,
+    Callback = function(Value)
+        Humanoid.WalkSpeed = Value
+    end
+})
+
+-- System Notification & Settings
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+InterfaceManager:SetFolder("GeminiCustomMenu")
+SaveManager:SetFolder("GeminiCustomMenu/configs")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+
+Window:SelectTab(1)
+
+Fluent:Notify({
+    Title = "Script Loaded",
+    Content = "Tekan tombol 'CTRL Kiri' untuk mimmize/membuka GUI.",
+    Duration = 5
+})
