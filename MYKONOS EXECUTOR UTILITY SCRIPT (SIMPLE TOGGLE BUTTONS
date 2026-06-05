@@ -1,0 +1,163 @@
+-- [[ MYKONOS EXECUTOR UTILITY SCRIPT (SIMPLE TOGGLE BUTTONS) ]] --
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local CoreGui = game:GetService("CoreGui")
+
+-- Custom ScreenGui agar tidak terdeteksi reset karakter
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MykonosSimpleToggle"
+-- Mencoba memasukkan ke CoreGui agar aman, jika gagal masuk ke PlayerGui
+local success, err = pcall(function() ScreenGui.Parent = CoreGui end)
+if not success then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+-- Layout Otomatis untuk Tombol (Menyusun tombol ke bawah di pojok kiri/kanan)
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 120, 0, 200)
+Frame.Position = UDim2.new(0, 10, 0.3, 0) -- Posisi di samping kiri layar
+Frame.BackgroundTransparency = 1
+Frame.Parent = ScreenGui
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = Frame
+UIListLayout.Padding = UDim.new(0, 8) -- Jarak antar tombol
+
+-- Fungsi untuk membuat tombol custom minimalis
+local function CreateToggleButton(text, color)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 0, 35)
+    button.BackgroundColor3 = color
+    button.BackgroundTransparency = 0.3
+    button.Text = text
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.Font = Enum.Font.SourceSansBold
+    button.TextSize = 14
+    button.Parent = Frame
+    
+    -- Efek melengkung sedikit (UI Corner)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+    
+    return button
+end
+
+-- Membuat Tombol-Tombol
+local SwimBtn = CreateToggleButton("Swim: OFF", Color3.fromRGB(200, 50, 50))
+local SkyBtn = CreateToggleButton("Change Skybox", Color3.fromRGB(50, 150, 50))
+local BaseBtn = CreateToggleButton("Spawn Baseplate", Color3.fromRGB(50, 50, 150))
+local SpeedBtn = CreateToggleButton("Speed: OFF", Color3.fromRGB(100, 100, 100))
+
+-- ==========================================
+-- 1. LOGIKA FITUR SWIM (BERENANG)
+-- ==========================================
+local swimming = false
+SwimBtn.MouseButton1Click:Connect(function()
+    swimming = not swimming
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid then
+        if swimming then
+            SwimBtn.Text = "Swim: ON"
+            SwimBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+            task.spawn(function()
+                while swimming do
+                    humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+                    task.wait(0.1)
+                end
+            end)
+        else
+            SwimBtn.Text = "Swim: OFF"
+            SwimBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        end
+    end
+end)
+
+-- ==========================================
+-- 2. LOGIKA FITUR SKYBOX CHANGER
+-- ==========================================
+local skyChanged = false
+SkyBtn.MouseButton1Click:Connect(function()
+    skyChanged = not skyChanged
+    if skyChanged then
+        SkyBtn.Text = "Skybox: Neon"
+        -- Hapus skybox lama
+        for _, obj in pairs(Lighting:GetChildren()) do
+            if obj:IsA("Sky") then obj:Destroy() end
+        end
+        -- Bikin Skybox Baru
+        local newSky = Instance.new("Sky")
+        newSky.Name = "MykonosSky"
+        newSky.SkyboxBk = "rbxassetid://600830446"
+        newSky.SkyboxDn = "rbxassetid://600831635"
+        newSky.SkyboxFt = "rbxassetid://600812546"
+        newSky.SkyboxLf = "rbxassetid://600826716"
+        newSky.SkyboxRt = "rbxassetid://600811943"
+        newSky.SkyboxUp = "rbxassetid://600819936"
+        newSky.SunTextureId = "rbxassetid://0"
+        newSky.Parent = Lighting
+        Lighting.ClockTime = 0
+    else
+        SkyBtn.Text = "Skybox: Default"
+        local sky = Lighting:FindFirstChild("MykonosSky")
+        if sky then sky:Destroy() end
+        Lighting.ClockTime = 14 -- Kembalikan ke siang hari
+    end
+end)
+
+-- ==========================================
+-- 3. LOGIKA FITUR BASEPLATE
+-- ==========================================
+local currentBaseplate = nil
+BaseBtn.MouseButton1Click:Connect(function()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if rootPart then
+        if not currentBaseplate or not currentBaseplate.Parent then
+            -- Buat Baseplate baru jika belum ada
+            currentBaseplate = Instance.new("Part")
+            currentBaseplate.Name = "MykonosBaseplate"
+            currentBaseplate.Size = Vector3.new(100, 2, 100)
+            currentBaseplate.CFrame = rootPart.CFrame * CFrame.new(0, -5, 0)
+            currentBaseplate.Anchored = true
+            currentBaseplate.Material = Enum.Material.Neon
+            currentBaseplate.Color = Color3.fromRGB(0, 255, 255)
+            currentBaseplate.Parent = Workspace
+            BaseBtn.Text = "Remove Baseplate"
+            BaseBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+        else
+            -- Hapus jika tombol diklik lagi
+            currentBaseplate:Destroy()
+            currentBaseplate = nil
+            BaseBtn.Text = "Spawn Baseplate"
+            BaseBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 150)
+        end
+    end
+end)
+
+-- ==========================================
+-- 4. LOGIKA FITUR WALK SPEED
+-- ==========================================
+local speedActive = false
+SpeedBtn.MouseButton1Click:Connect(function()
+    speedActive = not speedActive
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    
+    if humanoid then
+        if speedActive then
+            SpeedBtn.Text = "Speed: ON"
+            SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+            humanoid.WalkSpeed = 100
+        else
+            SpeedBtn.Text = "Speed: OFF"
+            SpeedBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            humanoid.WalkSpeed = 16 -- Kecepatan normal roblox
+        end
+    end
+end)
